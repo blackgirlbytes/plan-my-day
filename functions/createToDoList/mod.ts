@@ -9,17 +9,15 @@ const openAI = new OpenAI(env.YOUR_API_KEY);
 export default SlackFunction(
   CreateTodoListFunction,
   async ({ inputs, client }) => {
-    const itemsList = [
-      inputs.item1,
-      inputs.item2,
-      // ... add more items as needed
-    ].filter((item) => item); // This will remove any undefined or empty items
+    const itemsList = [inputs.item1, inputs.item2, inputs.item3].filter(
+      (item) => item
+    );
 
     let responseText = "Your To-Do List:\n";
 
     for (const item of itemsList) {
       const chatCompletion = await openAI.createChatCompletion({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4",
         messages: [
           { role: "system", content: "You are a helpful planning assistant." },
           {
