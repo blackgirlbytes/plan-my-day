@@ -6,6 +6,21 @@ import { OpenAI } from "https://deno.land/x/openai/mod.ts";
 const env = config();
 const openAI = new OpenAI(env.YOUR_API_KEY);
 
+function createTodoBlocks(item: string, breakdown: string): any[] {
+  return [
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*${item}*\n${breakdown}`,
+      },
+    },
+    {
+      type: "divider",
+    },
+  ];
+}
+
 export default SlackFunction(
   CreateTodoListFunction,
   async ({ inputs, client }) => {
@@ -13,7 +28,15 @@ export default SlackFunction(
       (item) => item
     );
 
-    let responseText = "Your To-Do List:\n";
+    let blocks = [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: "*Your Plan for the Day*",
+        },
+      },
+    ];
 
     for (const item of itemsList) {
       const chatCompletion = await openAI.createChatCompletion({
@@ -28,16 +51,21 @@ export default SlackFunction(
       });
 
       const breakdown = chatCompletion.choices?.[0]?.message?.content || item;
-      responseText += `\n**${item}**\n${breakdown}\n`;
+      blocks = blocks.concat(
+        createTodoBlocks(item, breakdown || "Default Value")
+      );
+      console.log(chatCompletion);
+      console.log(blocks);
     }
 
-    const response = await client.chat.postMessage({
+    const msgResponse = await client.chat.postMessage({
       channel: inputs.user,
-      text: responseText,
+      blocks: blocks,
+      text: "Your To-Do List",
     });
-
-    if (!response.ok) {
-      console.log("Error sending to-do list!", response.error);
+    console.log(msgResponse);
+    if (!msgResponse.ok) {
+      console.log("Error sending to-do list!", msgResponse.error);
     }
 
     return {
