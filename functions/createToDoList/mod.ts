@@ -6,41 +6,20 @@ import { OpenAI } from "https://deno.land/x/openai/mod.ts";
 const env = config();
 const openAI = new OpenAI(env.YOUR_API_KEY);
 
-function createTodoBlocks(item: string, breakdown: string): any[] {
-  return [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `*${item}*\n${breakdown}`,
-      },
-    },
-    {
-      type: "divider",
-    },
-  ];
-}
-
 export default SlackFunction(
   CreateTodoListFunction,
   async ({ inputs, client }) => {
-    const itemsList = [inputs.item1, inputs.item2, inputs.item3].filter(
-      (item) => item
-    );
+    const itemsList = [
+      inputs.item1,
+      inputs.item2,
+      // ... add more items as needed
+    ].filter((item) => item); // This will remove any undefined or empty items
 
-    let blocks = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: "*Your Plan for the Day*",
-        },
-      },
-    ];
+    let responseText = "Your To-Do List:\n";
 
     for (const item of itemsList) {
       const chatCompletion = await openAI.createChatCompletion({
-        model: "gpt-4",
+        model: "gpt-3.5-turbo",
         messages: [
           { role: "system", content: "You are a helpful planning assistant." },
           {
@@ -51,19 +30,16 @@ export default SlackFunction(
       });
 
       const breakdown = chatCompletion.choices?.[0]?.message?.content || item;
-      blocks = blocks.concat(createTodoBlocks(item, breakdown));
-      console.log(chatCompletion);
-      console.log(blocks);
+      responseText += `\n**${item}**\n${breakdown}\n`;
     }
 
-    const msgResponse = await client.chat.postMessage({
+    const response = await client.chat.postMessage({
       channel: inputs.user,
-      blocks: blocks,
-      text: "Your To-Do List",
+      text: responseText,
     });
-    console.log(msgResponse);
-    if (!msgResponse.ok) {
-      console.log("Error sending to-do list!", msgResponse.error);
+
+    if (!response.ok) {
+      console.log("Error sending to-do list!", response.error);
     }
 
     return {
